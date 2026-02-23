@@ -659,12 +659,15 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         self.pricelist_l3.currency_id = self.env.ref("base.THB")
         self.sub_line.sale_subscription_id.pricelist_id = self.pricelist_l3
         res = self.sub_line._get_display_price(self.product_1)
+        conversion_rate = self.env.company.currency_id._get_conversion_rate(
+            self.env.company.currency_id,
+            self.pricelist_l3.currency_id,
+            self.env.company,
+            fields.Date.today(),
+        )
         self.assertAlmostEqual(
             int(res),
-            round(
-                self.product_1.standard_price
-                * self.pricelist_l3.currency_id.rate_ids[:1].company_rate
-            ),
+            round(self.product_1.standard_price * conversion_rate),
         )
         self.sub_line.product_uom_qty = 300
         res = self.sub_line.read(["discount"])
