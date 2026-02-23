@@ -6,6 +6,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 
 from odoo import Command, api, fields, models
+from odoo.exceptions import UserError
 
 
 class SaleOrder(models.Model):
@@ -23,14 +24,12 @@ class SaleOrder(models.Model):
 
     @api.depends("subscription_ids")
     def _compute_subscriptions_count(self):
-        data = self.env["sale.subscription"].read_group(
+        data = self.env["sale.subscription"]._read_group(
             domain=[("sale_order_id", "in", self.ids)],
-            fields=["sale_order_id"],
             groupby=["sale_order_id"],
+            aggregates=["__count"],
         )
-        count_dict = {
-            item["sale_order_id"][0]: item["sale_order_id_count"] for item in data
-        }
+        count_dict = {sale_order.id: count for sale_order, count in data if sale_order}
         for record in self:
             record.subscriptions_count = count_dict.get(record.id, 0)
 
@@ -51,6 +50,21 @@ class SaleOrder(models.Model):
     def create_subscription(self, lines, subscription_tmpl):
         self.ensure_one()
         if subscription_tmpl:
+            pricelist = (
+                self.pricelist_id
+                or self.partner_id.with_company(
+                    self.company_id
+                ).property_product_pricelist
+                or self.partner_id.property_product_pricelist
+                or self.env["product.pricelist"].search(
+                    [("company_id", "in", [False, self.company_id.id])],
+                    limit=1,
+                )
+            )
+            if not pricelist:
+                raise UserError(
+                    self.env._("No pricelist found to create subscription.")
+                )
             subscription_lines = [
                 Command.create(line.get_subscription_line_values()) for line in lines
             ]
@@ -59,7 +73,7 @@ class SaleOrder(models.Model):
                     "partner_id": self.partner_id.id,
                     "user_id": self.env.context.get("uid", self.env.uid),
                     "template_id": subscription_tmpl.id,
-                    "pricelist_id": self.partner_id.property_product_pricelist.id,
+                    "pricelist_id": pricelist.id,
                     "date_start": date.today(),
                     "sale_order_id": self.id,
                     "sale_subscription_line_ids": subscription_lines,

@@ -412,14 +412,13 @@ class SaleSubscription(models.Model):
         }
 
     def _compute_sale_order_ids_count(self):
-        data = self.env["sale.order"].read_group(
+        data = self.env["sale.order"]._read_group(
             domain=[("order_subscription_id", "in", self.ids)],
-            fields=["order_subscription_id"],
             groupby=["order_subscription_id"],
+            aggregates=["__count"],
         )
         count_dict = {
-            item["order_subscription_id"][0]: item["order_subscription_id_count"]
-            for item in data
+            subscription.id: count for subscription, count in data if subscription
         }
         for record in self:
             record.sale_order_ids_count = count_dict.get(record.id, 0)
