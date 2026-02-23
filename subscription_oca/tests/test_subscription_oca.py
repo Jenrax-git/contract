@@ -19,6 +19,9 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         super().setUpClass()
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
         cls.portal_user = cls._create_new_portal_user()
+        cls.internal_user = cls._create_new_internal_user(
+            login="subscription_oca_internal_user"
+        )
         cls.cash_journal = cls.env["account.journal"].search(
             [
                 ("type", "=", "cash"),
@@ -308,7 +311,7 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
                 "name": name,
                 "active": True,
                 "currency_id": cls.env.ref("base.USD").id,
-                "company_id": cls.env.user.company_id.id,
+                "company_id": cls.env.company.id,
             }
         )
 
@@ -558,10 +561,14 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
             self.tmpl1.recurring_rule_type, self.tmpl1.recurring_interval
         )
         self.sub_line.product_uom_qty = 100
-        self.env.user.groups_id = [
-            Command.link(self.env.ref("sale.group_discount_per_so_line").id)
-        ]
-        disc = self.sub_line.read(["discount"])
+        self.internal_user.write(
+            {
+                "groups_id": [
+                    Command.link(self.env.ref("sale.group_discount_per_so_line").id)
+                ]
+            }
+        )
+        disc = self.sub_line.with_user(self.internal_user).read(["discount"])
         self.assertEqual(disc[0]["discount"], 0)
         wiz = self.env["close.reason.wizard"].create({})
         wiz.with_context(active_id=self.sub1.id).button_confirm()
