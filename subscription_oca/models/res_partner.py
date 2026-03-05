@@ -17,8 +17,14 @@ class Partner(models.Model):
     )
 
     def _compute_subscription_count(self):
+        data = self.env["sale.subscription"]._read_group(
+            domain=[("partner_id", "in", self.ids)],
+            groupby=["partner_id"],
+            aggregates=["__count"],
+        )
+        count_dict = {partner.id: count for partner, count in data if partner}
         for record in self:
-            record.subscription_count = len(record.subscription_ids)
+            record.subscription_count = count_dict.get(record.id, 0)
 
     def action_view_subscription_ids(self):
         return {

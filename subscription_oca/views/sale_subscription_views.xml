@@ -27,6 +27,7 @@
                         widget="statusbar"
                         options="{'fold_field': 'fold', 'clickable': '1'}"
                     />
+                    <field name="stage_type" invisible="1" />
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -70,18 +71,17 @@
                     </div>
                     <group>
                         <group name="left_group">
-                            <field name="active" invisible="1" />
-                            <field name="in_progress" invisible="True" />
                             <field name="partner_id" />
-                            <field name="currency_id" invisible="1" />
                             <field name="pricelist_id" />
                             <field
                                 name="date_start"
                                 readonly="not active or in_progress"
                             />
                             <field name="date" invisible="recurring_rule_boundary" />
-                            <field name="close_reason_id" invisible="active" />
-                            <field name="recurring_rule_boundary" invisible="1" />
+                            <field
+                                name="close_reason_id"
+                                invisible="stage_type != 'post'"
+                            />
                         </group>
                         <group name="right_group">
                             <field name="template_id" />
@@ -105,13 +105,20 @@
                         >
                             <field name="sale_subscription_line_ids">
                                 <list editable="bottom">
+                                    <field name="currency_id" column_invisible="1" />
                                     <field name="product_id" required="True" />
                                     <field
                                         name="name"
                                         required="True"
                                         widget="section_and_note_text"
                                     />
-                                    <field name="currency_id" column_invisible="1" />
+                                    <field
+                                        name="analytic_distribution"
+                                        widget="analytic_distribution"
+                                        optional="hide"
+                                        groups="analytic.group_analytic_accounting"
+                                        options="{'product_field': 'product_id', 'business_domain': 'sale_order'}"
+                                    />
                                     <field name="product_uom_qty" required="True" />
                                     <field name="price_unit" required="True" />
                                     <field name="discount" required="True" />
@@ -131,6 +138,7 @@
                                 colspan="2"
                                 name="subscription_total"
                             >
+                                <field name="currency_id" invisible="1" />
                                 <field
                                     name="recurring_total"
                                     widget="monetary"
@@ -181,7 +189,7 @@
                     </notebook>
                 </sheet>
 
-                <chatter/>
+                <chatter />
             </form>
         </field>
     </record>
@@ -191,6 +199,7 @@
         <field name="model">sale.subscription</field>
         <field name="arch" type="xml">
             <list>
+                <field name="currency_id" column_invisible="True" />
                 <field name="name" optional="show" />
                 <field name="partner_id" optional="show" />
                 <field name="recurring_next_date" optional="show" />
@@ -213,8 +222,8 @@
                 default_group_by="stage_id"
                 default_order="write_date,sequence"
                 class="o_kanban_small_column o_opportunity_kanban"
+                highlight_color="color"
             >
-                <!-- <field name="stage_id" options='{"group_by_tooltip": {"requirements": "Description"}}'/> -->
                 <field name="stage_id" />
                 <field name="code" />
                 <field name="write_date" />
@@ -236,53 +245,32 @@
                     help="This bar allows to filter the opportunities based on scheduled activities."
                 />
                 <templates>
-                    <t t-name="card">
-                        <div
-                            t-attf-class="
-                          #{!selection_mode ? kanban_color(record.color.raw_value) : ''}
-                          oe_kanban_global_click_edit
-                          oe_semantic_html_override
-                          oe_kanban_card"
-                        >
-                            <div class="o_dropdown_kanban dropdown" modifiers="{}">
-                                <a
-                                    role="button"
-                                    class="dropdown-toggle o-no-caret btn"
-                                    data-toggle="dropdown"
-                                    data-display="static"
-                                    href="#"
-                                    aria-label="Menú desplegable"
-                                    title="Menú desplegable"
-                                    modifiers="{}"
-                                >
-                                    <span class="fa fa-ellipsis-v" modifiers="{}" />
-                                </a>
-                                <div class="dropdown-menu" role="menu" modifiers="{}">
-                                    <a
-                                        role="menuitem"
-                                        class="dropdown-item oe_kanban_action oe_kanban_action_a"
-                                        modifiers="{}"
-                                        data-type="edit"
-                                        href="#"
-                                    >
-                                        Edit
-                                    </a>
-                                    <a
-                                        role="menuitem"
-                                        class="dropdown-item oe_kanban_action oe_kanban_action_a"
-                                        modifiers="{}"
-                                        data-type="delete"
-                                        href="#"
-                                    >
-                                        Delete
-                                    </a>
-                                    <ul
-                                        class="oe_kanban_colorpicker"
-                                        data-field="color"
-                                        modifiers="{}"
-                                    />
+                    <t t-name="menu">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div role="menuitem">
+                                        <a role="menuitem" type="open">
+                                            Edit
+                                        </a>
+                                    </div>
+                                    <div role="menuitem">
+                                        <a role="menuitem" type="delete">
+                                            Delete
+                                        </a>
+                                    </div>
+                                    <div role="menuitem">
+                                        <field
+                                            name="color"
+                                            widget="kanban_color_picker"
+                                        />
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </t>
+                    <t t-name="card">
+                        <div t-attf-class="oe_kanban_global_click_edit">
                             <div class="oe_kanban_content">
                                 <div>
                                     <field name="name" />
@@ -315,25 +303,22 @@
                                     </span>
                                 </div>
 
-                                <div class="o_kanban_record_bottom">
-                                    <div class="oe_kanban_bottom_left">
+                                <footer
+                                    class="mt-auto pt-0 ms-1 d-flex justify-content-between"
+                                >
+                                    <div>
                                         <field
                                             name="activity_ids"
                                             widget="kanban_activity"
                                         />
                                     </div>
-                                    <div class="oe_kanban_bottom_right">
-                                        <t t-set="unassigned">
-                                            <t t-esc="_t('Unassigned')" />
-                                        </t>
-                                        <img
-                                            t-att-src="kanban_image('res.users', 'image', record.user_id.raw_value)"
-                                            t-att-title="record.user_id.value || unassigned"
-                                            t-att-alt="record.user_id.value"
-                                            class="oe_kanban_avatar"
+                                    <div>
+                                        <field
+                                            name="user_id"
+                                            widget="many2one_avatar_user"
                                         />
                                     </div>
-                                </div>
+                                </footer>
                             </div>
                         </div>
                     </t>
@@ -348,11 +333,50 @@
         <field name="arch" type="xml">
             <search>
                 <field name="to_renew" />
+                <field name="name" />
+                <field name="partner_id" />
+                <field name="template_id" />
+                <field name="user_id" />
+                <field name="date_start" />
+                <field name="recurring_next_date" />
+                <field name="stage_id" />
                 <filter
                     string="Pending subscriptions"
                     name="pendingsubs"
                     domain="[('to_renew','=', True)]"
                 />
+                <separator />
+                <filter
+                    name="month_recurring_next_date"
+                    string="Next invoice date"
+                    date="recurring_next_date"
+                />
+                <group>
+                    <filter
+                        string="Partner"
+                        name="groupby_partner_id"
+                        domain="[]"
+                        context="{'group_by': 'partner_id'}"
+                    />
+                    <filter
+                        string="Next invoice date"
+                        name="groupby_recurring_next_date"
+                        domain="[]"
+                        context="{'group_by': 'recurring_next_date'}"
+                    />
+                    <filter
+                        string="Commercial agent"
+                        name="groupby_user_id"
+                        domain="[]"
+                        context="{'group_by': 'user_id'}"
+                    />
+                    <filter
+                        string="Stage"
+                        name="groupby_stage_id"
+                        domain="[]"
+                        context="{'group_by': 'stage_id'}"
+                    />
+                </group>
             </search>
         </field>
     </record>
