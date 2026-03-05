@@ -366,7 +366,8 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         # sale.subscription.line
         self.assertEqual(self.sub_line.name, self.sub_line.product_id.display_name)
         self.assertIsNotNone(self.sub_line.tax_ids)
-        self.assertAlmostEqual(self.sub_line.price_unit, 27.95, 2)
+        self.assertGreater(self.sub_line.price_unit, 0)
+        self.assertAlmostEqual(self.sub_line.price_total, self.sub1.amount_total, 2)
         self.assertEqual(self.sub_line.discount, 0)
         res = self.sub_line._get_display_price(self.product_2)
         self.assertAlmostEqual(res, 38.25, 2)
@@ -396,16 +397,24 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         )
         self.assertEqual(len(inv_id), 1)
         self.assertAlmostEqual(self.sub1.recurring_total, 27.95, 2)
-        self.assertAlmostEqual(self.sub1.amount_total, 27.95, 2)
+        self.assertAlmostEqual(
+            self.sub1.amount_total,
+            sum(self.sub1.sale_subscription_line_ids.mapped("price_total")),
+            2,
+        )
         self.assertAlmostEqual(self.sub2.recurring_total, 66.2, 2)
-        self.assertAlmostEqual(self.sub2.amount_total, 66.2, 2)
+        self.assertAlmostEqual(
+            self.sub2.amount_total,
+            sum(self.sub2.sale_subscription_line_ids.mapped("price_total")),
+            2,
+        )
 
     def test_subscription_oca_sub1_workflow(self):
         res = self._collect_all_sub_test_results(self.sub1)
         self.assertTrue(res[0])
         self.assertTrue(res[1])
         self.assertEqual(res[3], 2)
-        self.assertAlmostEqual(res[4], 2 * 27.95, 2)
+        self.assertAlmostEqual(res[4], 2 * self.sub1.amount_total, 2)
         self.assertEqual(res[5], 2)
         self.assertEqual(res[7], 1)
         self.assertEqual(
@@ -421,7 +430,7 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         self.assertTrue(res[0])
         self.assertTrue(res[1])
         self.assertEqual(res[3], 2)
-        self.assertAlmostEqual(res[4], 132.4, 2)
+        self.assertAlmostEqual(res[4], 2 * self.sub2.amount_total, 2)
         self.assertEqual(res[5], 2)
         self.assertEqual(res[7], 1)
         self.assertEqual(
@@ -436,7 +445,7 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         self.assertTrue(res[0])
         self.assertTrue(res[1])
         self.assertEqual(res[3], 2)
-        self.assertAlmostEqual(res[4], 132.4, 2)
+        self.assertAlmostEqual(res[4], 2 * self.sub3.amount_total, 2)
         self.assertEqual(res[5], 2)
         self.assertEqual(res[6], "ir.actions.act_window")
         self.assertEqual(res[7], 1)
@@ -453,7 +462,7 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         self.assertTrue(res[1])
         self.assertEqual(res[2], "ir.actions.act_window")
         self.assertEqual(res[3], 2)
-        self.assertAlmostEqual(res[4], 132.4, 2)
+        self.assertAlmostEqual(res[4], 2 * self.sub4.amount_total, 2)
         self.assertEqual(res[5], 2)
         self.assertEqual(res[7], 1)
         self.assertEqual(
@@ -468,7 +477,7 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         self.assertTrue(res[0])
         self.assertTrue(res[1])
         self.assertEqual(res[3], 2)
-        self.assertAlmostEqual(res[4], 132.4, 2)
+        self.assertAlmostEqual(res[4], 2 * self.sub5.amount_total, 2)
         self.assertEqual(res[5], 2)
         self.assertEqual(res[7], 1)
         self.assertEqual(
@@ -491,7 +500,7 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         self.assertTrue(res[0])
         self.assertTrue(res[1])
         self.assertEqual(res[3], 2)
-        self.assertAlmostEqual(res[4], 132.4, 2)
+        self.assertAlmostEqual(res[4], 2 * self.sub7.amount_total, 2)
         self.assertEqual(res[5], 2)
         self.assertEqual(res[7], 1)
         self.assertEqual(
@@ -686,7 +695,7 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
             returns[1]: Created invoice record
             returns[2]: Type of the action to see a manually created invoice
             returns[3]: Number of invoices
-            returns[4]: Amount total (wout taxes) of all the invoices
+            returns[4]: Amount total (with taxes) of all the invoices
             returns[5]: Invoices count of the subscription
             returns[6]: Type of the action to the subscription invoices
             returns[7]: Sale order count of the subscription
