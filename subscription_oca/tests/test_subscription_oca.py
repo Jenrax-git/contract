@@ -530,7 +530,7 @@ class TestSubscriptionOCA(TransactionCase):
             "without_discount"
         )
         self.sub_line.product_uom_qty = 100
-        self.env.user.groups_id = [
+        self.env.user.group_ids = [
             (4, self.env.ref("product.group_discount_per_so_line").id)
         ]
         disc = self.sub_line.read(["discount"])

@@ -354,7 +354,7 @@ class SaleSubscription(models.Model):
             "name": self.name,
             "views": [
                 (self.env.ref("account.view_move_form").id, "form"),
-                (self.env.ref("account.view_move_tree").id, "tree"),
+                (self.env.ref("account.view_move_tree").id, "list"),
             ],
             "view_type": "form",
             "view_mode": "form",
@@ -375,11 +375,11 @@ class SaleSubscription(models.Model):
         return {
             "name": self.name,
             "views": [
-                (self.env.ref("account.view_move_tree").id, "tree"),
+                (self.env.ref("account.view_move_tree").id, "list"),
                 (self.env.ref("account.view_move_form").id, "form"),
             ],
             "view_type": "form",
-            "view_mode": "tree,form",
+            "view_mode": "list,form",
             "res_model": "account.move",
             "type": "ir.actions.act_window",
             "domain": [
@@ -406,7 +406,7 @@ class SaleSubscription(models.Model):
         return {
             "name": self.name,
             "view_type": "form",
-            "view_mode": "tree,form",
+            "view_mode": "list,form",
             "res_model": "sale.order",
             "type": "ir.actions.act_window",
             "domain": [("id", "in", active_ids)],

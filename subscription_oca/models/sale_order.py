@@ -32,7 +32,7 @@ class SaleOrder(models.Model):
             "res_model": "sale.subscription",
             "domain": [("id", "in", self.subscription_ids.ids)],
             "name": self.name,
-            "view_mode": "tree,form",
+            "view_mode": "list,form",
         }
 
     def get_next_interval(self, type_interval, interval):
