@@ -739,3 +739,38 @@ class TestSubscriptionOCA(ProductCommon, BaseCommon):
         )
         test_res.append(group_stage_ids)
         return test_res
+
+    def test_manual_discount_persistence(self):
+        """Verify manual discount is preserved when changing quantity (Fix #1320)"""
+        # 1. Grant discount permissions for the test user
+        self.env.user.write(
+            {
+                "group_ids": [
+                    Command.link(self.env.ref("sale.group_discount_per_so_line").id)
+                ]
+            }
+        )
+
+        # 2. Create subscription line with standard pricelist (initial 0% discount)
+        sub = self.create_sub({"pricelist_id": self.pricelist1.id})
+        line = self.env["sale.subscription.line"].create(
+            {
+                "sale_subscription_id": sub.id,
+                "product_id": self.product_1.id,
+                "product_uom_qty": 1.0,
+            }
+        )
+
+        # 3. Simulate a manual 10% discount input
+        line.discount = 10.0
+
+        # 4. Change quantity (this used to trigger the bug that reset the discount)
+        line.product_uom_qty = 5.0
+        line._compute_discount()
+
+        # 5. Final verification
+        self.assertEqual(
+            line.discount,
+            10.0,
+            "Manual discount was lost after changing the quantity (Bug #1320)",
+        )

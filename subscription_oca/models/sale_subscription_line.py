@@ -146,6 +146,9 @@ class SaleSubscriptionLine(models.Model):
     )
     def _compute_discount(self):
         for record in self:
+            if record.discount and not self.env.context.get("force_pricelist_discount"):
+                continue
+
             if not (
                 record.product_id
                 and record.product_id.uom_id
